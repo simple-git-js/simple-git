@@ -1,6 +1,7 @@
 {
   "name": "@kwsites/action-build",
   "version": "1.0.0",
+  "private": true,
   "dependencies": {
     "@actions/artifact": "^0.3.5",
     "@actions/core": "^1.2.4",
