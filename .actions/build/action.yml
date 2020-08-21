@@ -1,0 +1,42 @@
+name: 'Build App'
+description: 'Build from TS source'
+inputs:
+   GITHUB_TOKEN:
+      description: 'GITHUB_TOKEN'
+      required: true
+#   NPM_AUTH_TOKEN:
+#      description: 'NPM_AUTH_TOKEN'
+#      required: true
+   OUT_DIR:
+      description: 'OUT_DIR'
+      required: false
+#   NPM_REGISTRY_URL:
+#      description: 'NPM_REGISTRY_URL'
+#      required: false
+#   GIT_TAG_SUFFIX:
+#      description: 'GIT_TAG_SUFFIX'
+#      required: false
+   SRC_DIR:
+      description: 'SRC_DIR'
+      required: false
+   TS_PROJECT:
+      description: 'TS_PROJECT'
+      required: false
+#   GITHUB_SHA:
+#      description: 'GITHUB_SHA'
+#      required: false
+#   GITHUB_ACTOR:
+#      description: 'GITHUB_ACTOR'
+#      required: false
+   GITHUB_REPOSITORY:
+      description: 'GITHUB_REPOSITORY'
+      required: false
+
+outputs:
+   content:
+      description: 'The output of the task'
+
+runs:
+   using: 'node12'
+   main: 'index.js'
+
