@@ -8,14 +8,7 @@ on:
 
 jobs:
 
-   compile:
-      runs-on: ubuntu-latest
-      steps:
-        -  uses: actions/checkout@v2
-        -  uses: ./.github/actions/build
-
    build:
-      needs: compile
       runs-on: ubuntu-latest
       strategy:
          matrix:

@@ -1,15 +1,37 @@
+const simpleGit = require('simple-git');
 const core = require('@actions/core');
 
-const repo = core.getInput('GITHUB_REPOSITORY', {required: false});
-const dirs = {
-   src: core.getInput('SRC_DIR', {required: false}),
-   out: core.getInput('OUT_DIR', {required: false}),
-};
-const proj = core.getInput('TS_PROJECT', {required: false});
+async function process() {
+   const actionConfig = getActionConfig();
 
-core.info(`repo: ${repo}`);
-core.info(`dirs: src=${dirs.src}, out=${dirs.out}`);
-core.info(`proj: ${proj}`);
+   core.info(`repo: ${actionConfig.repo}`);
+   core.info(`dirs: src=${actionConfig.dirs.src}, out=${actionConfig.dirs.out}`);
+   core.info(`proj: ${actionConfig.proj}`);
+
+   core.info(`latest tag: "${ await previouslyReleasedTag() }"`);
+}
+
+function getActionConfig() {
+   const repo = getInput('GITHUB_REPOSITORY');
+   const dirs = {
+      src: getInput('SRC_DIR') || './',
+      out: getInput('OUT_DIR') || './',
+   };
+   const proj = getInput('TS_PROJECT');
+
+   return {
+      repo, dirs, proj
+   };
+}
+
+function getInput(name, required = false) {
+   return core.getInput(name, {required}) || process.env[name];
+}
+
+async function previouslyReleasedTag(root = dirs.src) {
+   const {success, result} = await simpleGit(root).raw('describe', '--abbrev=0');
+   return success && String(result).trim() || null;
+}
 
 // const artifact = require('@actions/artifact');
 // const artifactClient = artifact.create()

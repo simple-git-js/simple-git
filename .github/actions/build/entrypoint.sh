@@ -41,6 +41,8 @@ git show-ref # useful for debugging
 git branch --verbose
 
 # Dependencies are installed at build time
+pwd
+ls
 node /src/index.js "$@"
 
 # git push "${GIT_REMOTE_URL}" --tags
