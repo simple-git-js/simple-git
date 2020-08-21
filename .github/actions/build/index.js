@@ -1,5 +1,4 @@
 const core = require('@actions/core');
-const exec = require('@actions/exec');
 
 const repo = core.getInput('GITHUB_REPOSITORY', {required: false});
 const dirs = {
