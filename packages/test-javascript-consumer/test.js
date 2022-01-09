@@ -1,4 +1,4 @@
-const simpleGit = require('simple-git');
+const simpleGit = require('simple-git-dev');
 const {strictEqual} = require("assert");
 
 debugger;
