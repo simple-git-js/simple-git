@@ -1,5 +1,12 @@
 # Change History & Release Notes
 
+## [3.1.0](https://www.github.com/simple-git-dev/simple-git/compare/v3.0.1...v3.1.0) (2022-01-09)
+
+
+### Features
+
+* Release please configuration ([#6](https://www.github.com/simple-git-dev/simple-git/issues/6)) ([ce6d2fa](https://www.github.com/simple-git-dev/simple-git/commit/ce6d2faa5439b9ce8c04764b00c83236ef4c8663))
+
 ### [3.0.1](https://www.github.com/simple-git-dev/simple-git/compare/v3.0.0...v3.0.1) (2022-01-09)
 
 
