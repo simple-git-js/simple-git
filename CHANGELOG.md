@@ -1,5 +1,12 @@
 # Change History & Release Notes
 
+### [3.1.1](https://www.github.com/simple-git-dev/simple-git/compare/v3.1.0...v3.1.1) (2022-01-09)
+
+
+### Bug Fixes
+
+* Sync versions ([5fca13c](https://www.github.com/simple-git-dev/simple-git/commit/5fca13c73e4c30f0c811d8edbe3ca5160f0030de))
+
 ## [3.1.0](https://www.github.com/simple-git-dev/simple-git/compare/v3.0.1...v3.1.0) (2022-01-09)
 
 
