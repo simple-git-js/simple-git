@@ -1,0 +1,7 @@
+{
+  "plugins": ["node-workspace"],
+  "packages": {
+    "simple-git": {}
+  },
+  "release-type": "node"
+}
