@@ -1,5 +1,12 @@
 # Change History & Release Notes
 
+### [3.0.1](https://www.github.com/simple-git-dev/simple-git/compare/v3.0.0...v3.0.1) (2022-01-09)
+
+
+### Bug Fixes
+
+* workspace name ([057ad9f](https://www.github.com/simple-git-dev/simple-git/commit/057ad9f694be98c5d708f5fdfff6d04afc681b34))
+
 ## [3.0.0](https://www.github.com/simple-git-dev/simple-git/compare/v2.19.0...v3.0.0) (2022-01-09)
 
 
