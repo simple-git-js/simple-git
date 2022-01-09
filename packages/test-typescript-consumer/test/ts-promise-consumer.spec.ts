@@ -1,4 +1,4 @@
-import simpleGit, { CleanOptions, SimpleGit } from 'simple-git/promise';
+import simpleGit, { CleanOptions, SimpleGit } from 'simple-git-dev/promise';
 
 describe('simple-git/promise', () => {
 
