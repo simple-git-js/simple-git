@@ -1,5 +1,5 @@
 {
-  "name": "@simple-git/babel-config",
+  "name": "@simple-git-dev/babel-config",
   "version": "1.0.0",
   "private": true,
   "main": "babel.config.js",

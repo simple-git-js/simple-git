@@ -1,5 +1,5 @@
 {
-  "name": "@simple-git/test-typescript-consumer",
+  "name": "@simple-git-dev/test-typescript-consumer",
   "private": true,
   "version": "1.0.0",
   "jest": {
