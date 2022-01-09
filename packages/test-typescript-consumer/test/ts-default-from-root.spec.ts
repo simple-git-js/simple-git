@@ -1,4 +1,4 @@
-import simpleGit, { gitP, CleanOptions, SimpleGit, TaskConfigurationError } from 'simple-git';
+import simpleGit, { gitP, CleanOptions, SimpleGit, TaskConfigurationError } from 'simple-git-dev';
 
 describe('simple-git', () => {
 

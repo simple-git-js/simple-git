@@ -1,5 +1,5 @@
 import { strictEqual } from 'assert';
-import simpleGit, { ResetMode } from 'simple-git';
+import simpleGit, { ResetMode } from 'simple-git-dev';
 
 exec('imports default', async () => {
    strictEqual(
