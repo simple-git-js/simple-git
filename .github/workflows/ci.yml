@@ -2,22 +2,26 @@ name: CI
 
 on:
    push:
-      branches: [ master ]
+      branches: [ main ]
    pull_request:
-      branches: [ master ]
+      branches: [ main ]
 
 jobs:
    build:
       runs-on: ubuntu-latest
       strategy:
          matrix:
-            node-version: [10.x, 12.x, 14.x]
+            node-version: [14.x, 16.x, 17.x]
       steps:
          - uses: actions/checkout@v2
          - name: Use Node.js ${{ matrix.node-version }}
            uses: actions/setup-node@v1
            with:
              node-version: ${{ matrix.node-version }}
+         - name: Node Version
+           run: node --version
+         - name: Git Version
+           run: git --version
          - name: Cache node_modules
            id: cache-modules
            uses: actions/cache@v1
@@ -27,9 +31,10 @@ jobs:
          - name: Dependencies
            if: steps.cache-modules.outputs.cache-hit != 'true'
            run: yarn
-         - run: echo "::set-env name=GIT_AUTHOR_NAME::Simple Git Tests"
-         - run: echo "::set-env name=GIT_AUTHOR_EMAIL::tests@simple-git.dev"
          - name: Build
            run: yarn build
          - name: Test
+           env:
+              GIT_AUTHOR_NAME: "Simple Git Tests"
+              GIT_AUTHOR_EMAIL: "tests@simple-git.dev"
            run: yarn test

@@ -1,14 +1,16 @@
 # Simple Git
 [![NPM version](https://img.shields.io/npm/v/simple-git.svg)](https://www.npmjs.com/package/simple-git)
- [![Build Status](https://travis-ci.org/steveukx/git-js.svg?branch=master)](https://travis-ci.org/steveukx/git-js)
 
 A lightweight interface for running `git` commands in any [node.js](https://nodejs.org) application.
 
 # Installation
 
-Easiest through [npm](https://npmjs.org): `npm install simple-git`
+Use your favourite package manager:
 
-# Dependencies
+- [npm](https://npmjs.org): `npm install simple-git`
+- [yarn](https://yarnpkg.com/): `yarn add simple-git`
+
+# System Dependencies
 
 Requires [git](https://git-scm.com/downloads) to be installed and that it can be called using the command `git`.
 
@@ -42,7 +44,7 @@ Configure each `simple-git` instance with a properties object passed to the main
 ```typescript
 import simpleGit, { SimpleGit, SimpleGitOptions } from 'simple-git';
 
-const options: SimpleGitOptions = {
+const options: Partial<SimpleGitOptions> = {
    baseDir: process.cwd(),
    binary: 'git',
    maxConcurrentProcesses: 6,
@@ -60,56 +62,56 @@ The first argument can be either a string (representing the working directory fo
 
 All configuration properties are optional, the default values are shown in the example above.
 
-## Using task callbacks
+## Per-command Configuration
 
-Each of the methods in the API listing below can be called in a chain and will be called in series after each other.
-The result of each task is sent to a trailing callback argument:
+To prefix the commands run by `simple-git` with custom configuration not saved in the git config (ie: using the
+`-c` command) supply a `config` option to the instance builder:
 
-```javascript
-const simpleGit = require('simple-git');
-const git = simpleGit();
-git.init(onInit).addRemote('origin', 'git@github.com:steveukx/git-js.git', onRemoteAdd);
+```typescript
+// configure the instance with a custom configuration property
+const git: SimpleGit = simpleGit('/some/path', { config: ['http.proxy=someproxy'] });
 
-function onInit (err, initResult) { }
-function onRemoteAdd (err, addRemoteResult) { }
-``` 
+// any command executed will be prefixed with this config
+// runs: git -c http.proxy=someproxy pull
+await git.pull();
+```
 
-If any of the steps in the chain result in an error, all pending steps will be cancelled, see the
-[parallel tasks]((#concurrent--parallel-requests)) section for more information on how to run tasks in parallel rather than in series .
+## Configuring Plugins
+
+- [Completion Detection](./docs/PLUGIN-COMPLETION-DETECTION.md)
+  Customise how `simple-git` detects the end of a `git` process.
+
+- [Error Detection](./docs/PLUGIN-ERRORS.md)
+  Customise the detection of errors from the underlying `git` process.
+
+- [Progress Events](./docs/PLUGIN-PROGRESS-EVENTS.md)
+  Receive progress events as `git` works through long-running processes.
+
+- [Spawned Process Ownership](./docs/PLUGIN-SPAWN-OPTIONS.md)
+  Configure the system `uid` / `gid` to use for spawned `git` processes.
+
+- [Timeout](./docs/PLUGIN-TIMEOUT.md)
+  Automatically kill the wrapped `git` process after a rolling timeout.
 
 ## Using task promises
 
-Based on the same API as the callback API detailed below, but instead of returning the `simpleGit` object for
-chaining, each task returns a promise to be fulfilled when that task is completed.  
+Each task in the API returns the `simpleGit` instance for chaining together multiple tasks, and each
+step in the chain is also a `Promise` that can be `await` ed in an `async` function or returned in a
+`Promise` chain.
 
 ```javascript
 const simpleGit = require('simple-git');
 const git = simpleGit();
 
-// using promises on each task
-git.init()
-   then(function onInit (initResult) { })
-  .then(() => git.addRemote('origin', 'git@github.com:steveukx/git-js.git'))
-  .then(function onRemoteAdd (addRemoteResult) { })
-  .catch(err => console.error(err));
+// chain together tasks to await final result
+await git.init().addRemote('origin', '...remote.git');
 
-// using a promise at the end of the chain to check for failures in any task
-git.init().addRemote('origin', 'git@github.com:steveukx/git-js.git')
-  .catch(err => console.error(err));
+// or await each step individually
+await git.init();
+await git.addRemote('origin', '...remote.git')
 ``` 
 
-## Using task promises as async/await
-
-Whether in TypeScript or JavaScript in node.js version 8 or above the promise API will work automatically
-with await:
-
-```typescript
-import simpleGit, { SimpleGit } from 'simple-git';
-
-const git: SimpleGit = simpleGit();
-const initResult = await git.init();
-const addRemoteResult = await git.addRemote('origin', 'git@github.com:steveukx/git-js.git');
-``` 
+## Catching errors in async code
 
 To catch errors in async code, either wrap the whole chain in a try/catch:
 
@@ -136,12 +138,28 @@ catch (e) { /* handle all errors here */ }
 function ignoreError () {}
 ```
 
+## Using task callbacks
+
+In addition to returning promise method can be called with a trailing callback argument to handle the result of the task 
+
+```javascript
+const simpleGit = require('simple-git');
+const git = simpleGit();
+git.init(onInit).addRemote('origin', 'git@github.com:steveukx/git-js.git', onRemoteAdd);
+
+function onInit (err, initResult) { }
+function onRemoteAdd (err, addRemoteResult) { }
+``` 
+
+If any of the steps in the chain result in an error, all pending steps will be cancelled, see the
+[parallel tasks]((#concurrent--parallel-requests)) section for more information on how to run tasks in parallel rather than in series .
+
 ## Task Responses
 
 Whether using a trailing callback or a Promise, tasks either return the raw `string` or `Buffer` response from the
 `git` binary, or where possible a parsed interpretation of the response.
 
-For type details of the response for each of the tasks, please see the [TypeScript definitions](./typings/simple-git.d.ts).  
+For type details of the response for each of the tasks, please see the [TypeScript definitions](./simple-git/typings/simple-git.d.ts).  
 
 
 # API
@@ -157,17 +175,15 @@ For type details of the response for each of the tasks, please see the [TypeScri
 | `.commit(message, handlerFn)` | commits changes in the current working directory with the supplied message where the message can be either a single string or array of strings to be passed as separate arguments (the `git` command line interface converts these to be separated by double line breaks) |
 | `.commit(message, [fileA, ...], options, handlerFn)` | commits changes on the named files with the supplied message, when supplied, the optional options object can contain any other parameters to pass to the commit command, setting the value of the property to be a string will add `name=value` to the command string, setting any other type of value will result in just the key from the object being passed (ie: just `name`), an example of setting the author is below |
 | `.customBinary(gitPath)` | sets the command to use to reference git, allows for using a git binary not available on the path environment variable |
-| `.cwd(workingDirectory)` |  Sets the current working directory for all commands after this step in the chain |
 | `.diff(options, handlerFn)` | get the diff of the current repo compared to the last commit with a set of options supplied as a string |
 | `.diff(handlerFn)` | get the diff for all file in the current repo compared to the last commit |
-| `.diffSummary(handlerFn)` | gets a summary of the diff for files in the repo, uses the `git diff --stat` format to calculate changes. Handler is called with a nullable error object and an instance of the [DiffSummary](src/responses/DiffSummary.js) |
-| `.diffSummary(options, handlerFn)` | includes options in the call to `diff --stat options` and returns a [DiffSummary](src/responses/DiffSummary.js) |
+| `.diffSummary(handlerFn)` | gets a summary of the diff for files in the repo, uses the `git diff --stat` format to calculate changes. Handler is called with a nullable error object and an instance of the [DiffSummary](./simple-git/src/lib/responses/DiffSummary.js) |
+| `.diffSummary(options, handlerFn)` | includes options in the call to `diff --stat options` and returns a [DiffSummary](./simple-git/src/lib/responses/DiffSummary.js) |
 | `.env(name, value)` | Set environment variables to be passed to the spawned child processes, [see usage in detail below](#environment-variables). |
 | `.exec(handlerFn)` | calls a simple function in the current step |
-| `.fetch([options, ] handlerFn)` | update the local working copy database with changes from the default remote repo and branch, when supplied the options argument can be a standard [options object](#how-to-specify-options) either an array of string commands as supported by the [git fetch](https://git-scm.com/docs/git-fetch). On success, the returned data will be an instance of the [FetchSummary](src/responses/FetchSummary.js) |
+| `.fetch([options, ] handlerFn)` | update the local working copy database with changes from the default remote repo and branch, when supplied the options argument can be a standard [options object](#how-to-specify-options) either an array of string commands as supported by the [git fetch](https://git-scm.com/docs/git-fetch). |
 | `.fetch(remote, branch, handlerFn)` | update the local working copy database with changes from a remote repo |
 | `.fetch(handlerFn)` | update the local working copy database with changes from the default remote repo and branch |
-| `.log([options], handlerFn)` | list commits between `options.from` and `options.to` tags or branch (if not specified will show all history). Additionally you can provide `options.file`, which is the path to a file in your repository. Then only this file will be considered. `options.symmetric` allows you to specify whether you want to use [symmetric revision range](https://git-scm.com/docs/gitrevisions#_dotted_range_notations) (To be compatible, by default, its value is true). For any other set of options, supply `options` as an array of strings to be appended to the `git log` command. To use a custom splitter in the log format, set `options.splitter` to be the string the log should be split on. Set `options.multiLine` to true to include a multi-line body in the output format. Options can also be supplied as a standard [options](#how-to-specify-options) object for adding custom properties supported by the [git log](https://git-scm.com/docs/git-log) command. |
 | `.outputHandler(handlerFn)` | attaches a handler that will be called with the name of the command being run and the `stdout` and `stderr` [readable streams](https://nodejs.org/api/stream.html#stream_class_stream_readable) created by the [child process](https://nodejs.org/api/child_process.html#child_process_class_childprocess) running that command |
 | `.raw(args[, handlerFn])` | Execute any arbitrary array of commands supported by the underlying git binary. When the git process returns a non-zero signal on exit and it printed something to `stderr`, the commmand will be treated as an error, otherwise treated as a success. |
 | `.rebase([options,] handlerFn)` | Rebases the repo, `options` should be supplied as an array of string parameters supported by the [git rebase](https://git-scm.com/docs/git-rebase) command, or an object of options (see details below for option formats). |
@@ -180,10 +196,15 @@ For type details of the response for each of the tasks, please see the [TypeScri
 | `.tags([options, ] handlerFn)` | list all tags, use the optional [options](#how-to-specify-options) object to set any options allows by the [git tag](https://git-scm.com/docs/git-tag) command. Tags will be sorted by semantic version number by default, for git versions 2.7 and above, use the `--sort` option to set a custom sort. |
 | `.show([options], handlerFn)` | Show various types of objects, for example the file content at a certain commit. `options` is the single value string or array of string commands you want to run |
 
+## git apply
+
+- `.applyPatch(patch, [options])` applies a single string patch (as generated by `git diff`), optionally configured with the supplied [options](#how-to-specify-options) to set any arguments supported by the [apply](https://git-scm.com/docs/git-apply) command. Returns the unmodified string response from `stdout` of the `git` binary.
+- `.applyPatch(patches, [options])` applies an array of string patches (as generated by `git diff`), optionally configured with the supplied [options](#how-to-specify-options) to set any arguments supported by the [apply](https://git-scm.com/docs/git-apply) command. Returns the unmodified string response from `stdout` of the `git` binary.
+
 ## git branch
 
-- `.branch([options])` uses the supplied [options](#how-to-specify-options) to run any arguments supported by the [branch](https://git-scm.com/docs/git-branch) command. Either returns a [BranchSummaryResult](src/lib/responses/BranchSummary.ts) instance when listing branches, or a [BranchSingleDeleteResult](typings/response.d.ts) type object when the options included `-d`, `-D` or `--delete` which cause it to delete a named branch rather than list existing branches.
-- `.branchLocal()` gets a list of local branches as a [BranchSummaryResult](src/lib/responses/BranchSummary.ts) instance
+- `.branch([options])` uses the supplied [options](#how-to-specify-options) to run any arguments supported by the [branch](https://git-scm.com/docs/git-branch) command. Either returns a [BranchSummaryResult](./simple-git/src/lib/responses/BranchSummary.ts) instance when listing branches, or a [BranchSingleDeleteResult](./simple-git/typings/response.d.ts) type object when the options included `-d`, `-D` or `--delete` which cause it to delete a named branch rather than list existing branches.
+- `.branchLocal()` gets a list of local branches as a [BranchSummaryResult](./simple-git/src/lib/responses/BranchSummary.ts) instance
 - `.deleteLocalBranch(branchName)` deletes a local branch - treats a failed attempt as an error
 - `.deleteLocalBranch(branchName, forceDelete)` deletes a local branch, optionally explicitly setting forceDelete to true - treats a failed attempt as an error
 - `.deleteLocalBranches(branchNames)` deletes multiple local branches
@@ -216,9 +237,28 @@ For type details of the response for each of the tasks, please see the [TypeScri
 
 ## git config
 
-- `.addConfig(key, value, append = false)` add a local configuration property, when `append` is set to `true` the
-  configuration setting is appended to rather than set in the local config.
-- `.listConfig()` reads the current configuration and returns a [ConfigListSummary](./src/lib/responses/ConfigList.ts)
+- `.addConfig(key, value, append = false, scope = 'local')` add a local configuration property, when `append` is set to
+  `true` the configuration setting is appended to rather than overwritten in the local config. Use the `scope` argument
+  to pick where to save the new configuration setting (use the exported `GitConfigScope` enum, or equivalent string
+  values - `worktree | local | global | system`).
+  
+- `.getConfig(key)` get the value(s) for a named key as a [ConfigGetResult](./simple-git/typings/response.d.ts)
+- `.getConfig(key, scope)` get the value(s) for a named key as a [ConfigGetResult](./simple-git/typings/response.d.ts) but limit the
+  scope of the properties searched to a single specified scope (use the exported `GitConfigScope` enum, or equivalent
+  string values - `worktree | local | global | system`)
+
+- `.listConfig()` reads the current configuration and returns a [ConfigListSummary](./simple-git/src/lib/responses/ConfigList.ts)
+- `.listConfig(scope: GitConfigScope)` as with `listConfig` but returns only those items in a specified scope (note that configuration values are overlaid on top of each other to build the config `git` will actually use - to resolve the configuration you are using use `(await listConfig()).all` without the scope argument)
+
+## git grep [examples](./examples/git-grep.md)
+
+- `.grep(searchTerm)` searches for a single search term across all files in the working tree, optionally passing a standard [options](#how-to-specify-options) object of additional arguments
+- `.grep(grepQueryBuilder(...))` use the `grepQueryBuilder` to create a complex query to search for, optionally passing a standard [options](#how-to-specify-options) object of additional arguments
+
+## git hash-object
+
+- `.hashObject(filePath, write = false)` computes the object ID value for the contents of the named file (which can be
+  outside of the work tree), optionally writing the resulting value to the object database.
 
 ## git init
 
@@ -229,26 +269,43 @@ For type details of the response for each of the tasks, please see the [TypeScri
 - `.init([options])` initialize a repository using any arguments supported by
    [git init](https://git-scm.com/docs/git-init) supplied as an [options](#how-to-specify-options) object/array.
 
+## git log
+
+- `.log([options])` list commits between `options.from` and `options.to` tags or branch (if not specified will
+  show all history). Use the `options` object to set any [options](#how-to-specify-options) supported by the
+  [git log](https://git-scm.com/docs/git-log) command or any of the following:
+
+  - `options.file` - the path to a file in your repository to only consider this path.
+  - `options.format` - custom log format object, keys are the property names used on the returned object, values are the format string from [pretty formats](https://git-scm.com/docs/pretty-formats#Documentation/pretty-formats.txt)
+  - `options.from` - when supplied along with `options.to` sets the range of commits to log
+  - `options.mailMap` - defaults to true, enables the use of [mail map](https://git-scm.com/docs/gitmailmap) in returned values for email and name from the default format
+  - `options.maxCount` - equivalent to setting the `--max-count` option
+  - `options.multiLine` - enables multiline body values in the default format (disabled by default)
+  - `options.splitter` - the character sequence to use as a delimiter between fields in the log, should be a value that doesn't appear in any log message (defaults to ` ò `)
+  - `options.strictDate` - switches the authored date value from an ISO 8601-like format to be strict ISO 8601 format 
+  - `options.symmetric` - defaults to true, enables [symmetric revision range](https://git-scm.com/docs/gitrevisions#_dotted_range_notations) rather than a two-dot range
+  - `options.to` - when supplied along with `options.from` sets the range of commits to log
+
 ## git merge
 
 - `.merge(options)` runs a merge using any configuration [options](#how-to-specify-options) supported
-   by [git merge](https://git-scm.com/docs/git-init).
+   by [git merge](https://git-scm.com/docs/git-merge).
    Conflicts during the merge result in an error response, the response is an instance of
-   [MergeSummary](src/lib/responses/MergeSummary.ts) whether it was an error or success.
-   When successful, the MergeSummary has all detail from a the [PullSummary](src/lib/responses/PullSummary.ts)
+   [MergeSummary](./simple-git/src/lib/responses/MergeSummary.ts) whether it was an error or success.
+   When successful, the MergeSummary has all detail from a the [PullSummary](./simple-git/src/lib/responses/PullSummary.ts)
    along with summary detail for the merge.
    When the merge failed, the MergeSummary contains summary detail for why the merge failed and which files
    prevented the merge.
 
-- `.mergeFromTo(from, to [, options])` - merge from one branch to another, similar to `.merge` but with the
-   `from` and `to` supplied as strings separately to any additional the [options](#how-to-specify-options).
+- `.mergeFromTo(remote, branch [, options])` - merge from the specified branch into the currently checked out branch,
+    similar to `.merge` but with the `remote` and `branch` supplied as strings separately to any additional 
+   [options](#how-to-specify-options).
 
 ## git mv
 
 - `.mv(from, to)` rename or move a single file at `from` to `to`
 
 - `.mv(from, to)` move all files in the `from` array to the `to` directory
-
 
 ## git pull
 
@@ -289,7 +346,7 @@ For type details of the response for each of the tasks, please see the [TypeScri
 
 ## git rev-parse / repo properties
 
--`.revparse([options])` sends the supplied [options](#how-to-specify-options) to [git rev-parse](https://git-scm.com/docs/git-rev-parse) and returns the string response from `git`. 
+- `.revparse([options])` sends the supplied [options](#how-to-specify-options) to [git rev-parse](https://git-scm.com/docs/git-rev-parse) and returns the string response from `git`. 
 
 - `.checkIsRepo()` gets whether the current working directory is a descendent of a git repository.
 - `.checkIsRepo('bare')` gets whether the current working directory is within a bare git repo (see either [git clone --bare](https://git-scm.com/docs/git-clone#Documentation/git-clone.txt---bare) or [git init --bare](https://git-scm.com/docs/git-init#Documentation/git-init.txt---bare)).
@@ -297,7 +354,7 @@ For type details of the response for each of the tasks, please see the [TypeScri
 
 ## git status
 
-- `.status([options])` gets the status of the current repo, resulting in a [StatusResult](typings/response.d.ts). Additional arguments
+- `.status([options])` gets the status of the current repo, resulting in a [StatusResult](./simple-git/typings/response.d.ts). Additional arguments
   supported by [git status](https://git-scm.com/docs/git-status)  can be supplied as an [options](#how-to-specify-options) object/array.
 
 ## git submodule
@@ -306,6 +363,11 @@ For type details of the response for each of the tasks, please see the [TypeScri
 - `.submoduleAdd(repo, path)` Adds a new sub module
 - `.submoduleInit([options]` Initialises sub modules, the optional [options](#how-to-specify-options) argument can be used to pass extra options to the `git submodule init` command.
 - `.submoduleUpdate(subModuleName, [options])` Updates sub modules, can be called with a sub module name and [options](#how-to-specify-options), just the options or with no arguments
+
+## changing the working directory [examples](examples/git-change-working-directory.md)
+
+- `.cwd(workingDirectory)` Sets the working directory for all future commands - note, this will change the working for the root instance, any chain created from the root will also be changed.
+- `.cwd({ path, root = false })` Sets the working directory for all future commands either in the current chain of commands (where `root` is omitted or set to `false`) or in the main instance (where `root` is `true`). 
 
 # How to Specify Options
 
@@ -317,7 +379,7 @@ will all be merged as trailing arguments in the command string, or as a simple a
 When the value of the property in the options object is a `string`, that name value
 pair will be included in the command string as `name=value`. For example:
 
-```js
+```javascript
 // results in 'git pull origin master --no-rebase'
 git().pull('origin', 'master', {'--no-rebase': null})
 
@@ -351,15 +413,19 @@ When upgrading to release 2.x from 1.x, see the [changelog](./CHANGELOG.md) for 
 
 # Recently Deprecated / Altered APIs
 
-- 2.13.0 `.push` now returns a [PushResult](./typings/response.d.ts) parsed representation of the response.
+- ~~2.25.0 depends on Node.js version 12 or above, for use in lower versions of node.js ensure you are also
+  importing the necessary polyfills from `core-js`, see [Legacy Node Versions](./docs/LEGACY_NODE_VERSIONS.md)~~
+  _this change has been reverted in 2.30.0 and will be postponed until version 3.x_. 
+
+- 2.13.0 `.push` now returns a [PushResult](./simple-git/typings/response.d.ts) parsed representation of the response.
 
 - 2.11.0 treats tasks chained together as atomic, where any failure in the chain prevents later tasks from
   executing and tasks called from the root `git` instance as the origin of a new chain, and able to be 
   [run in parallel](#concurrent--parallel-requests) without failures impacting one anther. Prior to this
   version, tasks called on the root `git` instance would be cancelled when another one failed.
 
-- 2.7.0 deprecates use of `.silent()` in favour of using the `debug` library - see [Enable Logging](#enable-logging)
- for further details.
+- 2.7.0 deprecates use of `.silent()` in favour of using the `debug` library - see the
+  [debug logging guide](docs/DEBUG-LOGGING-GUIDE.md) for further details.
 
 - 2.6.0 introduced `.then` and `.catch` as a way to chain a promise onto the current step of the chain.
 Importing from `simple-git/promise` instead of just `simple-git` is no longer required and is actively discouraged.
@@ -568,33 +634,19 @@ catch (err) {
 }
 ```
 
-# Troubleshooting
+# Troubleshooting / FAQ
 
 ### Enable logging
 
-This library uses [debug](https://www.npmjs.com/package/debug) to handle logging,
-to enable logging, use either the environment variable:
-
-```
-"DEBUG=simple-git" node ./your-app.js 
-``` 
-
-Or explicitly enable logging using the `debug` library itself:
-
-```javascript
-require('debug').enable('simple-git');
-``` 
+See the [debug logging guide](docs/DEBUG-LOGGING-GUIDE.md) for logging examples and how to
+make use of the [debug](https://www.npmjs.com/package/debug) library's programmatic interface
+in your application.
 
 ### Enable Verbose Logging
 
-If the regular logs aren't sufficient to find the source of your issue, enable one or more of the
-following for a more complete look at what the library is doing:
-
-- `DEBUG=simple-git:task:*` adds debug output for each task being run through the library  
-- `DEBUG=simple-git:task:add:*` adds debug output for specific git commands, just replace the `add` with
-   the command you need to investigate. To output multiple just add them both to the environment
-   variable eg: `DEBUG=simple-git:task:add:*,simple-git:task:commit:*`
-
+See the [debug logging guide](docs/DEBUG-LOGGING-GUIDE.md#verbose-logging-options) for
+the full list of verbose logging options to use with the
+[debug](https://www.npmjs.com/package/debug) library.
 
 ### Every command returns ENOENT error message
 
@@ -609,11 +661,43 @@ There are a few potential reasons:
   to output its logs add `@kwsites/file-exists` to your `DEBUG` environment variable. eg:
   
   `DEBUG=@kwsites/file-exists,simple-git node ./your-app.js`
-  
+
+### Log format fails
+
+The properties of `git log` are fetched using the `--pretty=format` argument which supports different tokens depending
+on the version of `git` - for example the `%D` token used to show the refs was added in git `2.2.3`, for any version
+before that please ensure you are supplying your own format object with properties supported by the version of git you
+are using.
+
+For more details of the supported tokens, please see the
+[official `git log` documentation](https://git-scm.com/docs/git-log#_pretty_formats) 
+
 ### Log response properties are out of order
 
 The properties of `git.log` are fetched using the character sequence ` ò ` as a delimiter. If your commit messages
-use this sequence, supply a custom `splitter` in the options, for example: `git.log({ splitter: '💻' })` 
+use this sequence, supply a custom `splitter` in the options, for example: `git.log({ splitter: '💻' })`
+
+### Pull / Diff / Merge summary responses don't recognise any files
+
+- Enable verbose logs with the environment variable `DEBUG=simple-git:task:*,simple-git:output:*`
+- Check the output (for example: `simple-git:output:diff:1 [stdOut]  1 file changed, 1 insertion(+)`)
+- Check the `stdOut` output is the same as you would expect to see when running the command directly in terminal
+- Check the language used in the response is english locale
+
+In some cases `git` will show progress messages or additional detail on error states in the output for
+`stdErr` that will help debug your issue, these messages are also included in the verbose log. 
+
+### Legacy Node Versions
+
+From `v3.x`, `simple-git` will drop support for `node.js` version 10 or below, to use in a lower version of
+node will result in errors such as:
+
+- `Object.fromEntries is not a function`
+- `Object.entries is not a function`
+- `message.flatMap is not a function`
+
+To resolve these issues, either upgrade to a newer version of node.js or ensure you are using the necessary
+polyfills from `core-js` - see [Legacy Node Versions](./docs/LEGACY_NODE_VERSIONS.md).
 
 # Examples
 
@@ -671,89 +755,105 @@ function initialiseRepo (git) {
 
 ```javascript
 require('simple-git')(__dirname + '/some-repo')
-     .pull()
-     .tags((err, tags) => console.log("Latest available tag: %s", tags.latest));
+   .pull()
+   .tags((err, tags) => console.log("Latest available tag: %s", tags.latest));
 
 // update repo and when there are changes, restart the app
 require('simple-git')()
-     .pull((err, update) => {
-        if(update && update.summary.changes) {
-           require('child_process').exec('npm restart');
-        }
-     });
+   .pull((err, update) => {
+      if(update && update.summary.changes) {
+         require('child_process').exec('npm restart');
+      }
+   });
 ```
 
 ### Starting a new repo
 
 ```javascript
 require('simple-git')()
-     .init()
-     .add('./*')
-     .commit("first commit!")
-     .addRemote('origin', 'https://github.com/user/repo.git')
-     .push('origin', 'master');
+   .init()
+   .add('./*')
+   .commit("first commit!")
+   .addRemote('origin', 'https://github.com/user/repo.git')
+   .push('origin', 'master');
 ```
 
 ### push with `-u`
 
 ```js
 require('simple-git')()
-     .add('./*')
-     .commit("first commit!")
-     .addRemote('origin', 'some-repo-url')
-     .push(['-u', 'origin', 'master'], () => console.log('done'));
+   .add('./*')
+   .commit("first commit!")
+   .addRemote('origin', 'some-repo-url')
+   .push(['-u', 'origin', 'master'], () => console.log('done'));
 ```
 
-### Piping to the console for long running tasks
+### Piping to the console for long-running tasks
 
 ```js
 require('simple-git')()
-     .outputHandler((command, stdout, stderr) => {
-        stdout.pipe(process.stdout);
-        stderr.pipe(process.stderr);
-     })
-     .checkout('https://github.com/user/repo.git');
+   .outputHandler((bin, stdout, stderr, args) => {
+      stdout.pipe(process.stdout);
+      stderr.pipe(process.stderr);
+      
+      // the name of the binary used, defaults to git, see customBinary for more info
+      assert.equal(bin, 'git');
+      
+      // all other arguments passsed to the binary
+      assert.deepEqual(args, ['checkout', 'https://github.com/user/repo.git']);
+   })
+   .checkout('https://github.com/user/repo.git');
 ```
 
 ### Update repo and print messages when there are changes, restart the app
 
 ```javascript
+// when using a chain
 require('simple-git')()
-     .exec(() => console.log('Starting pull...'))
-     .pull((err, update) => {
-        if(update && update.summary.changes) {
-           require('child_process').exec('npm restart');
-        }
-     })
-     .exec(() => console.log('pull done.'));
+   .exec(() => console.log('Starting pull...'))
+   .pull((err, update) => {
+     if(update && update.summary.changes) {
+        require('child_process').exec('npm restart');
+     }
+   })
+   .exec(() => console.log('pull done.'));
+
+// when using async and optional chaining
+const git = require('simple-git')()
+console.log('Starting pull...')
+if ((await git.pull())?.summary.changes) {
+   require('child_process').exec('npm restart');
+}
+console.log('pull done.');
+
 ```
 
 ### Get a full commits list, and then only between 0.11.0 and 0.12.0 tags
 
 ```javascript
 require('simple-git')()
-    .log((err, log) => console.log(log))
-    .log('0.11.0', '0.12.0', (err, log) => console.log(log));
+   .log((err, log) => console.log(log))
+   .log('0.11.0', '0.12.0', (err, log) => console.log(log));
 ```
 
 ### Set the local configuration for author, then author for an individual commit
 
 ```javascript
 require('simple-git')()
-    .addConfig('user.name', 'Some One')
-    .addConfig('user.email', 'some@one.com')
-    .commit('committed as "Some One"', 'file-one')
-    .commit('committed as "Another Person"', 'file-two', { '--author': '"Another Person <another@person.com>"' });
+   .addConfig('user.name', 'Some One')
+   .addConfig('user.email', 'some@one.com')
+   .commit('committed as "Some One"', 'file-one')
+   .commit('committed as "Another Person"', 'file-two', { '--author': '"Another Person <another@person.com>"' });
 ```
 
 ### Get remote repositories
 
 ```javascript
 require('simple-git')()
-    .listRemote(['--get-url'], (err, data) => {
-        if (!err) {
-            console.log('Remote url for repository at ' + __dirname + ':');
-            console.log(data);
-        }
-    });
+   .listRemote(['--get-url'], (err, data) => {
+      if (!err) {
+         console.log('Remote url for repository at ' + __dirname + ':');
+         console.log(data);
+      }
+   });
 ```

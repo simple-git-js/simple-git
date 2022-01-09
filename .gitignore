@@ -2,10 +2,8 @@
 .DS_Store
 node_modules/
 coverage/
+dist/
 *.bak
 *.log
 *.tsbuildinfo
-
-src/lib/**/*.js
-src/lib/**/*.map
-src/lib/**/*.d.ts
+package-lock.json
