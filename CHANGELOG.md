@@ -1,5 +1,16 @@
 # Change History & Release Notes
 
+## [3.0.0](https://www.github.com/simple-git-dev/simple-git/compare/v2.19.0...v3.0.0) (2022-01-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* needs version bump (#3)
+
+### Bug Fixes
+
+* needs version bump ([#3](https://www.github.com/simple-git-dev/simple-git/issues/3)) ([0228db3](https://www.github.com/simple-git-dev/simple-git/commit/0228db3e2e9da7fa8dc48f4fa960b99540444982))
+
 ## [2.48.0](https://www.github.com/steveukx/git-js/compare/v2.47.1...v2.48.0) (2021-12-01)
 
 
