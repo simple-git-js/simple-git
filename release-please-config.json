@@ -1,7 +1,17 @@
 {
-  "plugins": ["node-workspace"],
+  "plugins": [
+    "node-workspace"
+  ],
   "packages": {
-    "simple-git": {}
+    "simple-git": {},
+    ".": {
+      "releaseType": "node",
+      "draft": false,
+      "bumpMinorPreMajor": false,
+      "bumpPatchForMinorPreMajor": false,
+      "changelogPath": "CHANGELOG.md",
+      "versioning": "default"
+    }
   },
   "release-type": "node"
 }
