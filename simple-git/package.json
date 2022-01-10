@@ -63,7 +63,9 @@
     "build:docs": "cp ../*.md LICENSE dist",
     "preversion": "yarn test && yarn build",
     "test": "jest --coverage",
-    "x postversion": "npm publish && git push && git push --tags"
+  },
+  "publishConfig": {
+    "tag": "canary"
   },
   "publish": {
     "private": false,
