@@ -62,7 +62,7 @@
     "build:promise": "cp promise.* dist",
     "build:docs": "cp ../*.md LICENSE dist",
     "preversion": "yarn test && yarn build",
-    "test": "jest --coverage",
+    "test": "jest --coverage"
   },
   "publishConfig": {
     "tag": "canary"
